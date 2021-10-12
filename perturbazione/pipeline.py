@@ -1,120 +1,11 @@
 import sys
+from typing import List
 
 sys.path.insert(0, "../utils/")
 from utils import probability_boolean, find_all, randint, shuffle, random_choice, weighted_choice
 from itertools import chain
 from nltk import word_tokenize
 from detokenize import detokenize
-
-
-class SuperPipeline:
-    def __init__(self, stickyness=0, block_size=700, detokenizer=None):
-        self.sub_pipelines = []
-        self.sub_pipelines_weights = []
-        self.block_size = block_size
-        self.stickyness = stickyness
-        self.detokenizer = detokenizer
-
-    def addPipeline(self, pipeline, weight=1):
-        self.sub_pipelines.append(pipeline)
-        index = len(self.sub_pipelines) - 1
-        self.sub_pipelines_weights.extend([index] * weight)
-
-    def splitted(self, input):
-        blocks = []
-        bufferStr = ""
-        for char in input:
-            if len(bufferStr) < self.block_size or (
-                    len(bufferStr) >= self.block_size and char != " "):
-                bufferStr += char
-            else:
-                blocks.append(bufferStr)
-                bufferStr = ""
-        blocks.append(bufferStr)
-        return blocks
-
-    def perturbedList(self, inputList):
-        return [self.run(x) for x in inputList]
-
-    # Input is just a long string
-
-    def run(self, input):
-        plain_blocks = self.splitted(input)
-        perturbed_blocks = []
-        current_pipeline = random_choice(self.sub_pipelines_weights)
-        for pb in plain_blocks:
-            if not probability_boolean(self.stickyness):
-                current_pipeline = random_choice(self.sub_pipelines_weights)
-            perturbed = self.sub_pipelines[current_pipeline].run(pb)
-            perturbed_blocks.append(perturbed)
-        perturbed_blocks = list(chain(*perturbed_blocks))
-        return self.detokenizer.apply(perturbed_blocks)
-
-
-class Pipeline:
-    def __init__(self):
-        self.modules = []
-
-    def addModule(self, module):
-        self.modules.append(module)
-        return self
-
-    def feedInput(self, tokens):
-        self.input = tokens
-
-    def run(self, input):
-        for module in self.modules:
-            input = module.apply(input)
-        return input
-
-    def concatPipeline(self, other):
-        self.modules = [*self.modules, *other.modules]
-        return self
-
-    def clone(self):
-        cloned = Pipeline()
-        for module in self.modules:
-            cloned.addModule(module)
-        return cloned
-
-    def addTokenization(self, tkn_module, dtkn_module=None):
-        self.modules = [tkn_module, *self.modules]
-        if (dtkn_module):
-            self.modules = [*self.modules, dtkn_module]
-        return self
-
-
-class PerturbationModule:
-    def __init__(self):
-        self.function = None
-        self.token_grouping = None
-        self.probability = None
-
-    def group(self, tokens):
-        grouped = []
-        current = []
-        for t in tokens:
-            if len(current) == self.token_grouping:
-                grouped.append(current)
-                current = []
-            current.append(t)
-        if len(current) > 0:
-            grouped.append(current)
-        return grouped
-
-    def __init__(self, perturbation_function, token_grouping, probability):
-        self.perturbation_function = perturbation_function
-        self.token_grouping = token_grouping
-        self.probability = probability
-
-    def apply(self, tokens):
-        perturbed_list = [
-            self.perturbation_function(t)
-            if probability_boolean(self.probability)
-            and len(t) == self.token_grouping else t
-            for t in self.group(tokens)
-        ]
-        return list(chain.from_iterable(perturbed_list))
 
 
 class TokenizerModule:
@@ -247,3 +138,139 @@ def TokenSubModule(subMatrix,
             tokens, subMatrix, alternativesDict, tokenAlternatives),
         token_grouping=1,
         probability=probability)
+
+
+class Pipeline:
+    def __init__(self):
+        self.modules = []
+
+    def addModule(self, module):
+        self.modules.append(module)
+        return self
+
+    def feedInput(self, tokens):
+        self.input = tokens
+
+    def run(self, input):
+        for module in self.modules:
+            input = module.apply(input)
+        return input
+
+    def concatPipeline(self, other):
+        self.modules = [*self.modules, *other.modules]
+        return self
+
+    def clone(self):
+        cloned = Pipeline()
+        for module in self.modules:
+            cloned.addModule(module)
+        return cloned
+
+    def addTokenization(self, tkn_module, dtkn_module=None):
+        self.modules = [tkn_module, *self.modules]
+        if (dtkn_module):
+            self.modules = [*self.modules, dtkn_module]
+        return self
+
+
+class PerturbationModule:
+    def __init__(self):
+        self.function = None
+        self.token_grouping = None
+        self.probability = None
+
+    def group(self, tokens):
+        grouped = []
+        current = []
+        for t in tokens:
+            if len(current) == self.token_grouping:
+                grouped.append(current)
+                current = []
+            current.append(t)
+        if len(current) > 0:
+            grouped.append(current)
+        return grouped
+
+    def __init__(self, perturbation_function, token_grouping, probability):
+        self.perturbation_function = perturbation_function
+        self.token_grouping = token_grouping
+        self.probability = probability
+
+    def apply(self, tokens):
+        perturbed_list = [
+            self.perturbation_function(t)
+            if probability_boolean(self.probability)
+            and len(t) == self.token_grouping else t
+            for t in self.group(tokens)
+        ]
+        return list(chain.from_iterable(perturbed_list))
+
+
+class SuperPipeline:
+    """Classe che permette di combinare una o più pipeline insieme
+    """
+    def __init__(self,
+                 stickyness: int = 0,
+                 block_size: int = 700,
+                 detokenizer=DetokenizerModule) -> None:
+        """ Costruttore base della classe
+
+        Args:
+            stickyness (:obj:`int`): Numero compreso fra 0 e 1. E' la probabilità che la pipeline di perturbazione rimanga la stessa dopo un blocco di codice
+
+            block_size (:obj:`int`, optional): Lunghezza in caratteri di un blocco di testo, nel quale si unicamente una pipeline di pertubazione.
+
+            detokinzer (:obj:`Detokenizer`): Eventuale modulo di detokenizzazione da aggiungere alla fine della superpipeline.
+        """
+        self.sub_pipelines = []
+        self.sub_pipelines_weights = []
+        self.block_size = block_size
+        self.stickyness = stickyness
+        self.detokenizer = detokenizer
+
+    def addPipeline(self, pipeline: Pipeline, weight: int = 1) -> None:
+        """ Funzione che aggiunge una pipeline di pertubazione alla superpipeline 
+        
+        Args:
+            pipeline (:obj:`Pipeline`): pipeline da aggiungere
+
+            weight (:obj:`int`, optional): peso della pipeline nell'insieme di tutte le pipeline. Maggiore è il peso, maggiore è la probabilità che la pipeline aggiunta sia usata per la perturbazione
+        """
+        self.sub_pipelines.append(pipeline)
+        index = len(self.sub_pipelines) - 1
+        self.sub_pipelines_weights.extend([index] * weight)
+
+    def splitted(self, input: str) -> list:
+        """ Funzione che ritorna la stringa `input` in blocchi di `self.block_size` caratteri 
+        
+        Args:
+            input (:obj:`str`): stringa da dividere in blocchi
+        """
+        blocks = []
+        bufferStr = ""
+        for char in input:
+            if len(bufferStr) < self.block_size or (
+                    len(bufferStr) >= self.block_size and char != " "):
+                bufferStr += char
+            else:
+                blocks.append(bufferStr)
+                bufferStr = ""
+        blocks.append(bufferStr)
+        return blocks
+
+    def run(self, input: str) -> str:
+        """ Funzione che perturba in testo `input` con la Superpipeline definta 
+        
+        Args:
+            input (:obj:`str`): stringa da perturbare
+        """
+        plain_blocks = self.splitted(input)
+        perturbed_blocks = []
+        current_pipeline = random_choice(self.sub_pipelines_weights)
+        for pb in plain_blocks:
+            if not probability_boolean(self.stickyness):
+                current_pipeline = random_choice(self.sub_pipelines_weights)
+            perturbed = self.sub_pipelines[current_pipeline].run(pb)
+            perturbed_blocks.append(perturbed)
+        perturbed_blocks = list(chain(*perturbed_blocks))
+        return self.detokenizer.apply(perturbed_blocks)
