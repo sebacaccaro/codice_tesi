@@ -3,7 +3,7 @@ import os
 from tqdm import tqdm
 
 
-class Extractor:
+class Sentences_Extractor:
     """ Classe che gestisce l'estrazione dal dataset degli archivi vaticani"""
     def __init__(self, dataset_folder: str, langauges: list) -> None:
         """ Costruttore base della classe
@@ -85,7 +85,7 @@ class Extractor:
 
 
 def main() -> None:
-    extr = Extractor("../../Tesi/Dataset/vatpub", ["it"])
+    extr = Sentences_Extractor("../../Tesi/Dataset/vatpub", ["it"])
     extr.saveToFile("out.json")
     print(extr.get_extracted_sentences()[5])
 

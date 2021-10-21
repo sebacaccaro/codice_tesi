@@ -7,6 +7,7 @@ import random
 def probability_boolean(prob):
     return random.random() < prob
 
+
 # Trova tuttle le sottosequenze di una sub-stringa in un'altra stringa
 
 
@@ -45,3 +46,14 @@ def weighted_choice(choice_dict):
         if (randNumber <= 0):
             choice = current
     return current
+
+
+def find_all(a_str: str, sub: str) -> int:
+    """ Ritorna tutte le iterazioni di una sottostringa all'interno di una stringa"""
+    start = 0
+    while True:
+        start = a_str.find(sub, start)
+        if start == -1:
+            return
+        yield start
+        start += len(sub)
