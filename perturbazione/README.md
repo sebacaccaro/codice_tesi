@@ -11,8 +11,6 @@ Il file contiene:
 - La classe ```Pipeline``` che combina vari moduli di perturbazione per applicarli in serie sul testo da perturbare.
 - La classe ```SuperPipeline``` che combina varie pipeline per perturbare lunghi segmenti di testo in modo etorogeneo.
 
-## pipelines_def.py
-Il file contiene delle funzioni helper per creare delle pipeline di diverso tipo (segmentazione, token, misto).
 
 ## perturbation_superpipelines.py
 Il file definisce le SuperPipeline (`T1`,`T2`,`T3`,`S1`,`S2`,`S3`,`M1`,`M2`,`M3`,) usate per i test sperimentali
