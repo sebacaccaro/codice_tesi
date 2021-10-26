@@ -4,7 +4,7 @@ from pipeline import Pipeline, SplitModuleGenerator, CharsSubModule, AddPunctuat
 
 tokenSub_activated = True
 
-with open("../Perturbazione/submatrix_extraction/error_matrix.json") as f:
+with open("../perturbazione/error_matrix.json") as f:
     subData = json.load(f)
 
 altDict = {}

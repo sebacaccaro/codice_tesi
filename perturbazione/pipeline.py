@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import sys
-from typing import List
+from typing import Callable
 
 sys.path.insert(0, "../utils/")
 from utils import probability_boolean, find_all, randint, shuffle, random_choice, weighted_choice
@@ -11,7 +11,7 @@ from detokenize import detokenize
 
 class PerturbationModule:
     """ Modulo di perturbazione base. Il suo funzionamento è dato dalla funzione di perturbazione base fornita nel costruttore """
-    def __init__(self, perturbation_function: function, token_grouping: int,
+    def __init__(self, perturbation_function: Callable, token_grouping: int,
                  probability: float) -> None:
         """ Costruttore base della classe
         

@@ -12,3 +12,9 @@ Main di esempio con le classi `Sentences_Extractor` e `Samples_Extractor`  l'est
 
 ## samples.json
 Esempio ridotto dell'output del processo di estrazione dei samples.
+
+## dataset_generator.py
+Esporta la classe `Dataset_Generator` che si occupa della creazione (con perturbazione) del dataset usato testare la correzione. Nel file è presente anche un main di esempio che ne mostra l'utilizzo.
+
+## dataset.json e dataset_reduced.json
+Dataset di esempio creati attraverso la classe `Dataset_Generator`. Sono rispettivamente una versione completa e ridotta dello stesso dataset, creati con il main di `dataset_generator.py`. Entrambi comunque sono molto brevi e a solo scopo di esempio: per utilizzarli per test reali si consiglia di creare versioni più amplie.
